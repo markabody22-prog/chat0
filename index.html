@@ -3,56 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Butterfly Garden Chat</title>
+    <title>Butterfly Garden Pro</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        :root { --green: #7fb069; --pink: #ffc0cb; --sky: #e1f5fe; --purple: #9575cd; }
-        body { margin: 0; background: var(--sky); font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        #header { background: var(--green); color: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--pink); font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg-container { display: flex; flex-direction: column; max-width: 80%; padding: 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; }
-        .mine { align-self: flex-start; background: white; border: 2px solid var(--pink); }
-        .others { align-self: flex-end; background: var(--green); color: white; }
-        .user { font-size: 10px; font-weight: bold; margin-bottom: 5px; color: var(--purple); }
-        .del-btn { background: none; border: none; color: #ff5252; cursor: pointer; font-size: 14px; margin-top: 5px; padding: 0; }
-        #input-area { background: white; padding: 15px; display: flex; gap: 10px; border-top: 2px solid var(--green); align-items: center; }
-        input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #ddd; outline: none; font-size: 16px; }
-        button#sendBtn { background: var(--purple); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 20px; flex-shrink: 0; }
+        :root { --green: #7fb069; --pink: #ffc0cb; --sky: #e1f5fe; --purple: #9575cd; --white: #ffffff; }
+        
+        body { margin: 0; background: var(--sky); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Header & Sidebar */
+        #header { background: var(--green); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
+        .menu-icon { font-size: 24px; cursor: pointer; }
+        
+        #sidebar { position: fixed; right: -250px; top: 0; width: 250px; height: 100%; background: white; box-shadow: -2px 0 10px rgba(0,0,0,0.2); transition: 0.3s; z-index: 20; padding: 20px; box-sizing: border-box; }
+        #sidebar.open { right: 0; }
+        .sidebar-item { padding: 15px 0; border-bottom: 1px solid #eee; color: var(--purple); font-weight: bold; cursor: pointer; }
+
+        /* Chat Area */
+        #chat-window { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background-image: url('https://www.transparenttextures.com/patterns/cubes.png'); }
+        
+        .msg-container { display: flex; flex-direction: column; max-width: 85%; padding: 12px 16px; border-radius: 20px; position: relative; animation: fadeIn 0.3s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.05); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .mine { align-self: flex-start; background: var(--white); border: 2px solid var(--pink); border-bottom-left-radius: 2px; }
+        .others { align-self: flex-end; background: var(--green); color: white; border-bottom-right-radius: 2px; }
+        
+        .user-tag { font-size: 11px; font-weight: bold; margin-bottom: 4px; color: var(--purple); }
+        .others .user-tag { color: #e1f5fe; }
+        
+        .del-btn { background: none; border: none; color: #ff5252; cursor: pointer; font-size: 12px; margin-top: 6px; padding: 0; font-weight: bold; }
+
+        /* Input Area (زر الإرسال مرفوع وبجانب النص) */
+        #input-container { background: white; padding: 12px 18px; display: flex; gap: 10px; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-bottom: 25px; }
+        
+        input { flex: 1; padding: 14px 20px; border-radius: 30px; border: 1px solid #e0e0e0; outline: none; font-size: 16px; background: #f9f9f9; transition: 0.2s; }
+        input:focus { border-color: var(--purple); background: white; }
+        
+        #sendBtn { background: linear-gradient(135deg, var(--purple), #7e57c2); color: white; border: none; width: 52px; height: 52px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(149, 117, 205, 0.4); transition: 0.2s; flex-shrink: 0; }
+        #sendBtn:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
-    <div id="header">🦋 Butterfly Garden 🌸</div>
+
+    <div id="header">
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+        <div>🦋 Butterfly Garden 🌸</div>
+        <div style="width: 24px;"></div> </div>
+
+    <div id="sidebar">
+        <h3 style="color: var(--green);">القائمة</h3>
+        <div class="sidebar-item" onclick="alert('قريباً: تغيير الاسم')">👤 ملفي الشخصي</div>
+        <div class="sidebar-item" onclick="location.reload()">🔄 تحديث الدردشة</div>
+        <div class="sidebar-item" onclick="toggleMenu()" style="color: red;">✖ إغلاق</div>
+    </div>
+
     <div id="chat-window"></div>
-    <div id="input-area">
-        <input type="text" id="msgInput" placeholder="اكتب رسالة رقيقة...">
-        <button id="sendBtn">➤</button>
+
+    <div id="input-container">
+        <input type="text" id="msgInput" placeholder="اكتب رسالة رقيقة للحديقة...">
+        <button id="sendBtn">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+        </button>
     </div>
 
 <script>
-    // تم وضع الـ Key الخاص بك هنا ليعمل التطبيق أونلاين فوراً
+    // استخدم مفتاحك الخاص (Ably Key)
     const API_KEY = 'XGo5cg.HJoQoA:tgdISgIHM4HJKMf3-H1Zh4dpouEoCR-zyunHiWVlq7E'; 
     const ably = new Ably.Realtime(API_KEY);
-    const channel = ably.channels.get('butterfly-garden-global');
+    const channel = ably.channels.get('butterfly-garden-v3');
 
     const chatWindow = document.getElementById('chat-window');
     const input = document.getElementById('msgInput');
     const myId = "user_" + Math.random().toString(36).substr(2, 5);
-    const myName = "فراشة_" + Math.floor(1000 + Math.random() * 9000);
+    const myName = "فراشة_" + Math.floor(1000 + Math.random() * 8999);
+
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
 
     // إرسال الرسالة
     document.getElementById('sendBtn').onclick = () => {
         const text = input.value.trim();
         if (text) {
-            const msgId = "msg_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+            const msgId = "m_" + Date.now();
             channel.publish('chat', { id: msgId, sender: myId, user: myName, text: text, action: 'new' });
             input.value = '';
         }
     };
 
-    // استقبال الرسائل والحذف المباشر
+    // استقبال الرسائل
     channel.subscribe('chat', (m) => {
         const data = m.data;
-
         if (data.action === 'delete') {
             const el = document.getElementById(data.id);
             if (el) el.remove();
@@ -64,20 +102,16 @@
         div.id = data.id;
         div.className = `msg-container ${isMine ? 'mine' : 'others'}`;
         div.innerHTML = `
-            <span class="user">${data.user}</span>
-            <div class="text">${data.text}</div>
+            <span class="user-tag">${data.user}</span>
+            <div>${data.text}</div>
             ${isMine ? `<button class="del-btn" onclick="deleteMsg('${data.id}')">حذف 🗑️</button>` : ''}
         `;
         chatWindow.appendChild(div);
         chatWindow.scrollTop = chatWindow.scrollHeight;
     });
 
-    // دالة حذف الرسالة عند الجميع
-    window.deleteMsg = (id) => {
-        channel.publish('chat', { id: id, action: 'delete' });
-    };
+    window.deleteMsg = (id) => { channel.publish('chat', { id: id, action: 'delete' }); };
 
-    // الإرسال عند الضغط على Enter
     input.onkeydown = (e) => { if(e.key === 'Enter') document.getElementById('sendBtn').click(); };
 </script>
 </body>
