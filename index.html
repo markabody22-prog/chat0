@@ -3,200 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Butterfly Garden - Accounts</title>
+    <title>Butterfly Garden V3</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        :root { --primary: #7fb069; --me-bg: #dcf8c6; --bg: #e5ddd5; --accent: #9575cd; }
-        * { box-sizing: border-box; font-family: sans-serif; }
-        body { margin: 0; background: #f0f2f5; height: 100vh; overflow: hidden; }
+        :root { --primary: #7fb069; --bg: #e5ddd5; --me: #dcf8c6; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* شاشات الدخول والتسجيل */
-        #auth-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--primary); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 1000; color: white; padding: 20px;
-        }
-        .auth-card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 320px; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .auth-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; outline: none; text-align: center; font-size: 16px; }
-        .auth-card button { width: 100%; padding: 12px; border: none; background: var(--primary); color: white; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .auth-card p { font-size: 12px; color: #666; text-align: center; cursor: pointer; text-decoration: underline; }
+        /* شاشة القفل */
+        #auth-screen { position: fixed; inset: 0; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 9999; color: white; }
+        .auth-box { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; color: #333; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .auth-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; text-align: center; font-size: 16px; }
+        .auth-box button { width: 100%; padding: 12px; border: none; background: var(--primary); color: white; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        /* واجهة التطبيق */
-        #main-app { display: none; flex-direction: column; height: 100vh; }
-        header { background: var(--primary); color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        /* الهيكل الرئيسي */
+        header { background: var(--primary); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
-        
-        .bubble { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 15px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .mine { align-self: flex-start; background: white; border-top-left-radius: 0; }
-        .others { align-self: flex-end; background: var(--me-bg); border-top-right-radius: 0; }
-        .sender { font-size: 11px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 3px; }
-        .msg-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #888; }
-        .del-btn { background: none; border: none; cursor: pointer; color: #ff5252; font-size: 14px; }
 
-        .input-bar { background: #f0f0f0; padding: 8px 10px; display: flex; align-items: flex-end; gap: 5px; border-top: 1px solid #ddd; }
-        .input-wrapper { flex: 1; background: white; border-radius: 25px; padding: 5px 10px; display: flex; align-items: center; border: 1px solid #ccc; }
-        #msgInput { flex: 1; border: none; outline: none; padding: 8px; max-height: 80px; resize: none; font-size: 16px; }
-        #sendBtn { background: var(--primary); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; flex-shrink: 0; }
+        /* منطقة اليوتيوب */
+        #yt-area { background: #000; display: none; flex-direction: column; border-bottom: 2px solid var(--primary); }
+        .yt-controls { background: #333; padding: 10px; display: flex; gap: 5px; }
+        #yt-input { flex: 1; padding: 8px; border-radius: 5px; border: none; font-size: 13px; }
         
-        #emoji-panel { display: none; background: white; grid-template-columns: repeat(8, 1fr); padding: 10px; max-height: 150px; overflow-y: auto; }
-        .emoji { font-size: 24px; padding: 5px; cursor: pointer; text-align: center; }
+        /* الرسائل */
+        .msg { max-width: 80%; padding: 10px; border-radius: 15px; position: relative; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); line-height: 1.4; word-wrap: break-word; }
+        .mine { align-self: flex-start; background: white; border-top-left-radius: 2px; }
+        .others { align-self: flex-end; background: var(--me); border-top-right-radius: 2px; }
+        .sender-name { font-size: 11px; color: #7b1fa2; font-weight: bold; display: block; margin-bottom: 4px; }
+        .del-btn { color: #ff5252; font-size: 12px; cursor: pointer; margin-right: 10px; text-decoration: underline; }
+
+        /* شريط الإدخال */
+        .footer { background: #f0f0f0; padding: 10px; border-top: 1px solid #ddd; }
+        .input-row { display: flex; align-items: center; gap: 10px; }
+        #msgInput { flex: 1; padding: 12px 18px; border-radius: 25px; border: 1px solid #ccc; outline: none; font-size: 16px; }
+        .btn-icon { font-size: 24px; cursor: pointer; background: none; border: none; padding: 0; }
+        
+        /* الإيموجي */
+        #emoji-panel { display: none; background: white; grid-template-columns: repeat(8, 1fr); padding: 10px; border-top: 1px solid #ddd; max-height: 150px; overflow-y: auto; }
+        .emoji-item { font-size: 24px; text-align: center; padding: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
-        <div class="auth-card" id="login-box">
-            <h3 style="text-align:center; margin-top:0;">🦋 دخول الحديقة</h3>
-            <input type="text" id="user-name" placeholder="اسم المستخدم">
-            <input type="password" id="user-pass" placeholder="كلمة المرور">
-            <button onclick="handleAuth()">دخول / تسجيل</button>
-            <p style="margin-top:15px;">ملاحظة: إذا كنت جديداً، سيتم إنشاء حسابك تلقائياً.</p>
+        <div class="auth-box">
+            <h2 style="margin-top:0">🦋 حديقة الفراشات</h2>
+            <input type="text" id="login-name" placeholder="اسمك">
+            <input type="password" id="login-pass" placeholder="كلمة المرور (4444)">
+            <button onclick="login()">دخول</button>
         </div>
     </div>
 
-    <div id="main-app">
-        <header>
-            <span id="display-name">...</span>
-            <span>🦋 Butterfly Garden</span>
-            <button onclick="logout()" style="background:none; border:none; color:white; font-size:12px;">خروج</button>
-        </header>
-        <div id="chat-window"></div>
-        <div id="emoji-panel"></div>
-        <div class="input-bar">
-            <button style="background:none; border:none; font-size:22px;" onclick="toggleEmoji()">😊</button>
-            <label style="font-size:22px; cursor:pointer;">📎<input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleImage(event)"></label>
-            <div class="input-wrapper">
-                <textarea id="msgInput" rows="1" placeholder="اكتب رسالة..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
-            </div>
-            <button id="sendBtn" onclick="send()">➤</button>
+    <header>
+        <span id="user-display">...</span>
+        <button onclick="toggleYT()" style="background:white; color:var(--primary); border:none; padding:5px 12px; border-radius:15px; font-weight:bold; font-size:12px;">🎵 موسيقى يوتيوب</button>
+        <button onclick="location.reload()" style="background:none; border:none; color:white; font-size:12px;">خروج</button>
+    </header>
+
+    <div id="yt-area">
+        <div id="yt-player-container"></div>
+        <div class="yt-controls">
+            <input type="text" id="yt-input" placeholder="ضع رابط الفيديو هنا...">
+            <button onclick="changeVideo()" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:5px;">تشغيل للكل</button>
         </div>
     </div>
 
-<script>
-    const API_KEY = 'XGo5cg.HJoQoA:tgdISgIHM4HJKMf3-H1Zh4dpouEoCR-zyunHiWVlq7E';
-    let ably, channel, currentUser = null;
+    <div id="chat-window"></div>
 
-    // نظام الحسابات المبسط
-    function handleAuth() {
-        const name = document.getElementById('user-name').value.trim();
-        const pass = document.getElementById('user-pass').value.trim();
+    <div id="emoji-panel"></div>
 
-        if (name.length < 3 || pass !== "4444") { // جعلت كلمة مرور الغرفة هي المفتاح الموحد للدخول حالياً
-            alert("تأكد من الاسم وكلمة مرور الغرفة (4444)");
-            return;
+    <div class="footer">
+        <div class="input-row">
+            <button class="btn-icon" onclick="toggleEmoji()">😊</button>
+            <label class="btn-icon">📎<input type="file" id="fileIn" style="display:none" onchange="uploadImg(event)"></label>
+            <input type="text" id="msgInput" placeholder="اكتب رسالتك...">
+            <button onclick="sendMsg()" style="background:var(--primary); color:white; border:none; width:45px; height:45px; border-radius:50%; font-size:20px;">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'XGo5cg.HJoQoA:tgdISgIHM4HJKMf3-H1Zh4dpouEoCR-zyunHiWVlq7E';
+        let ably, channel, user, photo = null;
+
+        function login() {
+            const name = document.getElementById('login-name').value;
+            const pass = document.getElementById('login-pass').value;
+            if(name && pass === "4444") {
+                user = { name: name, id: "u_" + Date.now() };
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('user-display').innerText = name;
+                initChat();
+            } else { alert("البيانات خاطئة!"); }
         }
 
-        currentUser = { name: name, id: btoa(name) }; // إنشاء ID فريد مبني على الاسم
-        localStorage.setItem('butterfly_user', JSON.stringify(currentUser));
-        startApp();
-    }
+        function initChat() {
+            ably = new Ably.Realtime(API_KEY);
+            channel = ably.channels.get('butterfly-v30-stable');
 
-    function startApp() {
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        document.getElementById('display-name').innerText = currentUser.name;
+            channel.history({ limit: 20 }, (err, page) => {
+                if(page) page.items.reverse().forEach(m => drawMsg(m.data));
+            });
 
-        ably = new Ably.Realtime(API_KEY);
-        channel = ably.channels.get('butterfly-v10-accounts');
+            channel.subscribe('msg', (m) => {
+                if(m.data.type === 'yt') {
+                    playVideo(m.data.vidId);
+                } else if(m.data.type === 'del') {
+                    document.getElementById(m.data.id)?.remove();
+                } else {
+                    drawMsg(m.data);
+                }
+            });
+        }
 
-        // جلب الرسائل السابقة
-        channel.history({ limit: 30 }, (err, page) => {
-            if (page) page.items.reverse().forEach(m => displayMessage(m.data));
-        });
+        // يوتيوب
+        function toggleYT() {
+            const area = document.getElementById('yt-area');
+            area.style.display = area.style.display === 'flex' ? 'none' : 'flex';
+        }
 
-        channel.subscribe('msg', (m) => {
-            if(m.data.type === 'delete') {
-                document.getElementById(m.data.id)?.remove();
-            } else {
-                displayMessage(m.data);
-            }
-        });
-    }
+        function changeVideo() {
+            const url = document.getElementById('yt-input').value;
+            const vidId = url.split('v=')[1]?.split('&')[0] || url.split('youtu.be/')[1]?.split('?')[0];
+            if(vidId) channel.publish('msg', { type: 'yt', vidId: vidId });
+            else alert("الرابط غير صحيح!");
+        }
 
-    // إرسال الرسالة مع بيانات المستخدم
-    function send() {
-        const txt = document.getElementById('msgInput').value.trim();
-        if(!txt && !compressedImage) return;
+        function playVideo(id) {
+            document.getElementById('yt-player-container').innerHTML = 
+                `<iframe width="100%" height="200" src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
+            document.getElementById('yt-area').style.display = 'flex';
+        }
 
-        const msgId = "id_" + Date.now() + "_" + currentUser.id;
-        channel.publish('msg', {
-            id: msgId,
-            senderId: currentUser.id,
-            user: currentUser.name,
-            text: txt,
-            image: compressedImage,
-            type: 'new'
-        });
+        // الدردشة
+        function sendMsg() {
+            const txt = document.getElementById('msgInput').value;
+            if(!txt && !photo) return;
+            const mid = "m_" + Date.now();
+            channel.publish('msg', { id: mid, senderId: user.id, senderName: user.name, text: txt, img: photo });
+            document.getElementById('msgInput').value = '';
+            photo = null;
+            document.getElementById('emoji-panel').style.display = 'none';
+        }
 
-        document.getElementById('msgInput').value = '';
-        compressedImage = null;
-    }
+        function drawMsg(data) {
+            if(!data.id || document.getElementById(data.id)) return;
+            const isMe = data.senderId === user.id;
+            const div = document.createElement('div');
+            div.id = data.id;
+            div.className = `msg ${isMe ? 'mine' : 'others'}`;
+            div.innerHTML = `
+                <span class="sender-name">${data.senderName}</span>
+                ${data.img ? `<img src="${data.img}" style="width:100%; border-radius:10px; margin-bottom:5px;">` : ''}
+                ${data.text ? `<div>${data.text}</div>` : ''}
+                <div style="font-size:10px; color:#999; margin-top:5px;">
+                    ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                    ${isMe ? `<span class="del-btn" onclick="deleteMsg('${data.id}')">حذف</span>` : ''}
+                </div>
+            `;
+            document.getElementById('chat-window').appendChild(div);
+            document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+        }
 
-    function displayMessage(data) {
-        if(!data.id || document.getElementById(data.id)) return;
-        const isMe = data.senderId === currentUser.id;
-        const div = document.createElement('div');
-        div.id = data.id;
-        div.className = `bubble ${isMe ? 'mine' : 'others'}`;
-        
-        div.innerHTML = `
-            <span class="sender">${data.user}</span>
-            ${data.image ? `<img src="${data.image}" style="max-width:100%; border-radius:8px;">` : ''}
-            <div>${data.text || ''}</div>
-            <div class="msg-footer">
-                <span>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                ${isMe ? `<button class="del-btn" onclick="requestDelete('${data.id}')">🗑️</button>` : ''}
-            </div>
-        `;
-        document.getElementById('chat-window').appendChild(div);
-        document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
-    }
+        function deleteMsg(id) {
+            if(confirm("حذف الرسالة للجميع؟")) channel.publish('msg', { type: 'del', id: id });
+        }
 
-    function requestDelete(id) {
-        if(confirm("حذف الرسالة للجميع؟")) channel.publish('msg', { id: id, type: 'delete' });
-    }
-
-    function logout() {
-        localStorage.removeItem('butterfly_user');
-        location.reload();
-    }
-
-    // ضغط الصور (نفس الكود السابق لضمان العمل)
-    let compressedImage = null;
-    function handleImage(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (e) => {
-            const img = new Image();
-            img.src = e.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 400;
-                canvas.width = MAX_WIDTH; canvas.height = img.height * (MAX_WIDTH / img.width);
-                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                compressedImage = canvas.toDataURL('image/jpeg', 0.5);
-                alert("الصورة جاهزة للإرسال!");
+        function uploadImg(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const img = new Image();
+                img.src = reader.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 300; canvas.height = img.height * (300/img.width);
+                    canvas.getContext('2d').drawImage(img, 0, 0, 300, canvas.height);
+                    photo = canvas.toDataURL('image/jpeg', 0.6);
+                    alert("الصورة جاهزة، اضغط إرسال");
+                };
             };
-        };
-    }
+        }
 
-    // الإيموجي
-    const emojis = ["😊","😂","❤️","😍","👍","✨","🦋","🌸","🎮","💔"];
-    emojis.forEach(e => {
-        let span = document.createElement('span'); span.className = 'emoji'; span.innerText = e;
-        span.onclick = () => { document.getElementById('msgInput').value += e; };
-        document.getElementById('emoji-panel').appendChild(span);
-    });
-    function toggleEmoji() { const p = document.getElementById('emoji-panel'); p.style.display = p.style.display === 'grid' ? 'none' : 'grid'; }
-
-    // فحص إذا كان مسجلاً للدخول مسبقاً
-    const savedUser = localStorage.getItem('butterfly_user');
-    if(savedUser) {
-        currentUser = JSON.parse(savedUser);
-        startApp();
-    }
-</script>
+        // إيموجي
+        const emojis = ["😊","😂","❤️","😍","👍","🔥","✨","🦋","🌸"];
+        const ep = document.getElementById('emoji-panel');
+        emojis.forEach(e => {
+            const s = document.createElement('div'); s.className='emoji-item'; s.innerText=e;
+            s.onclick = () => document.getElementById('msgInput').value += e;
+            ep.appendChild(s);
+        });
+        function toggleEmoji() { ep.style.display = ep.style.display === 'grid' ? 'none' : 'grid'; }
+    </script>
 </body>
 </html>
