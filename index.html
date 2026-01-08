@@ -11,16 +11,25 @@
         body { margin: 0; font-family: sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         header { background: var(--primary); color: white; padding: 12px; text-align: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
         #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
-        .bubble { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 15px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        .bubble { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 15px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
         .mine { align-self: flex-start; background: white; border-top-left-radius: 0; }
         .others { align-self: flex-end; background: var(--me-bg); border-top-right-radius: 0; }
         .img-msg { max-width: 100%; border-radius: 8px; margin: 5px 0; display: block; }
         .sender { font-size: 11px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 3px; }
+        
+        .msg-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #888; }
+        .del-btn { background: none; border: none; cursor: pointer; color: #ff5252; font-size: 14px; padding: 0 5px; opacity: 0.6; }
+        .del-btn:hover { opacity: 1; }
+
         .input-bar { background: #f0f0f0; padding: 8px 10px; display: flex; align-items: flex-end; gap: 5px; border-top: 1px solid #ddd; }
         .input-wrapper { flex: 1; background: white; border-radius: 25px; padding: 5px 10px; display: flex; align-items: center; border: 1px solid #ccc; }
         #msgInput { flex: 1; border: none; outline: none; padding: 8px; max-height: 100px; resize: none; font-size: 16px; background: transparent; }
         .btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #666; padding: 5px; }
         #sendBtn { background: var(--primary); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); flex-shrink: 0; }
+        
         #emoji-panel { display: none; background: white; grid-template-columns: repeat(8, 1fr); padding: 10px; border-top: 1px solid #ddd; max-height: 180px; overflow-y: auto; }
         .emoji { font-size: 24px; padding: 5px; cursor: pointer; text-align: center; }
         #preview-container { display: none; padding: 10px; background: #fff; border-top: 1px solid #ddd; align-items: center; gap: 10px; }
@@ -34,7 +43,7 @@
     <div id="preview-container">
         <img id="preview-img" src="">
         <button class="btn" onclick="cancelImage()">❌</button>
-        <small id="status-text">جاري معالجة الصورة...</small>
+        <small id="status-text">جاري المعالجة...</small>
     </div>
     <div id="emoji-panel"></div>
     <div class="input-bar">
@@ -49,7 +58,7 @@
 <script>
     const API_KEY = 'XGo5cg.HJoQoA:tgdISgIHM4HJKMf3-H1Zh4dpouEoCR-zyunHiWVlq7E'; 
     const ably = new Ably.Realtime(API_KEY);
-    const channel = ably.channels.get('butterfly-v7-final');
+    const channel = ably.channels.get('butterfly-v8-final');
     
     const chatWin = document.getElementById('chat-window');
     const input = document.getElementById('msgInput');
@@ -71,14 +80,10 @@
         if (resultPage) resultPage.items.reverse().forEach(msg => displayMessage(msg.data));
     });
 
-    // معالجة وضغط الصورة
     function handleImage(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         document.getElementById('preview-container').style.display = 'flex';
-        document.getElementById('status-text').innerText = "يتم الآن ضغط الصورة...";
-
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (e) => {
@@ -86,18 +91,14 @@
             img.src = e.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 400; // تصغير العرض لضمان صغر الحجم
+                const MAX_WIDTH = 400;
                 const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-
+                canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // ضغط الصورة بجودة 0.5 (50%) لتقليل الحجم جداً
                 compressedImage = canvas.toDataURL('image/jpeg', 0.5);
                 document.getElementById('preview-img').src = compressedImage;
-                document.getElementById('status-text').innerText = "الصورة جاهزة!";
+                document.getElementById('status-text').innerText = "جاهز!";
             };
         };
     }
@@ -111,22 +112,45 @@
     function send() {
         const txt = input.value.trim();
         if(!txt && !compressedImage) return;
-
-        channel.publish('msg', { sender: myId, user: "فراشة", text: txt, image: compressedImage });
+        const msgId = "id_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
+        channel.publish('msg', { id: msgId, sender: myId, user: "فراشة", text: txt, image: compressedImage, type: 'new' });
         input.value = ''; input.style.height = 'auto';
         cancelImage(); emojiPanel.style.display = 'none';
     }
 
-    channel.subscribe('msg', (m) => { displayMessage(m.data); });
+    // حذف الرسالة للجميع
+    function requestDelete(msgId) {
+        if(confirm("هل تريد حذف هذه الرسالة للجميع؟")) {
+            channel.publish('msg', { id: msgId, type: 'delete' });
+        }
+    }
+
+    channel.subscribe('msg', (m) => {
+        const d = m.data;
+        if(d.type === 'delete') {
+            document.getElementById(d.id)?.remove();
+        } else {
+            displayMessage(d);
+        }
+    });
 
     function displayMessage(data) {
-        if(!data.sender) return;
+        if(!data.id || document.getElementById(data.id)) return;
         const isMe = data.sender === myId;
         const div = document.createElement('div');
+        div.id = data.id;
         div.className = `bubble ${isMe ? 'mine' : 'others'}`;
+        
         let content = `<span class="sender">${data.user}</span>`;
         if(data.image) content += `<img src="${data.image}" class="img-msg">`;
         if(data.text) content += `<div>${data.text}</div>`;
+        
+        // تذييل الرسالة مع زر الحذف
+        content += `<div class="msg-footer">
+            <span>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+            ${isMe ? `<button class="del-btn" onclick="requestDelete('${data.id}')">🗑️</button>` : ''}
+        </div>`;
+        
         div.innerHTML = content;
         chatWin.appendChild(div);
         chatWin.scrollTop = chatWin.scrollHeight;
